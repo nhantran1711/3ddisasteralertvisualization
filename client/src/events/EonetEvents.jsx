@@ -1,70 +1,80 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { filterEvents } from '../utils/filterEvents';
 
-const EonetEvents = () => {
-  const [events, setEvents] = useState([]);
+const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents }) => {
+  const [events, setEvents] = useState([]);  // Initialize as an empty array
+  const [categories, setCategories] = useState([]);  // To store unique categories
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('http://localhost:4000/api/eonet');
-        console.log('Fetched events data:', response.data); // Log the data to inspect its structure
-        setEvents(response.data.events || []); // Access events array from the response
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to fetch events');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/api/eonet');
+      const fetchedEvents = response.data.events || [];  // Ensure it’s an array
+      setEvents(fetchedEvents);
 
+      // Extract unique categories from the events (to populate the dropdown)
+      const uniqueCategories = [
+        ...new Set(fetchedEvents.map((event) => event.categories?.[0]?.title).filter(Boolean)),
+      ];
+      setCategories(uniqueCategories);
+    } catch (err) {
+      setError('Failed to fetch events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+    const intervalId = setInterval(fetchData, 60000);  // Fetch data every minute
+    return () => clearInterval(intervalId);  // Cleanup on unmount
   }, []);
 
+  // Filter events based on the disasterType
+  useEffect(() => {
+    const filtered = filterEvents(events, disasterType);
+    setFilteredEvents(filtered);  // Pass the filtered events to the parent component
+  }, [disasterType, events, setFilteredEvents]);  // Re-run when disasterType or events change
+
+  useEffect(() => {
+    if (!disasterType) {
+      setFilteredEvents(events); // If no disaster type is selected, show all events
+    } else {
+      const filtered = filterEvents(events, disasterType);
+      setFilteredEvents(filtered); // Apply filtering if a disaster type is selected
+    }
+  }, [disasterType, events]); // This will trigger whenever disasterType or events change
+  
+
+  // Function to handle changes in the dropdown (disasterType)
+  const handleDisasterChange = (event) => {
+    setDisasterType(event.target.value);  // Update the disaster type in the parent component
+  };
+
+  // Loading and error handling
   if (loading) {
     return <div>Loading...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div>{error}</div>;
   }
 
   return (
     <div>
-      {events.length > 0 ? (
-        events.map((event) => {
-          // Extract coordinates with a fallback check
-          const coordinates = event.geometry?.coordinates;
-          const latitude = coordinates?.[1] || 'N/A';
-          const longitude = coordinates?.[0] || 'N/A';
+      <h1>Filter Events</h1>
 
-          return (
-            <div key={event.id}>
-              <h3>{event.title}</h3>
-
-              {/* Category */}
-              <p>Category: {event.categories?.[0]?.title || 'N/A'}</p>
-
-              {/* Magnitude (check if geometry exists and has magnitudeValue) */}
-              <p>Magnitude: {event.geometry?.[0]?.magnitudeValue || 'N/A'}</p>
-
-              {/* Date (check if geometry exists and has date) */}
-              <p>Date: {event.geometry?.[0]?.date || 'N/A'}</p>
-
-              {/* Location (check if coordinates are available) */}
-              <p>Location: 
-                {event.geometry?.[0]?.coordinates?.[0] && event.geometry?.[0]?.coordinates?.[1]
-                  ? `(${event.geometry[0].coordinates[0]}, ${event.geometry[0].coordinates[1]})`
-                  : 'N/A'}
-              </p>
-            </div>
-          );
-        })
-      ) : (
-        <p>No events available.</p>
-      )}
+      {/* Dropdown to select disaster type */}
+      <select onChange={handleDisasterChange} value={disasterType}>
+        <option value="">Select Disaster Type</option>
+        {categories.map((category) => (
+          <option key={category} value={category}>
+            {category}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
