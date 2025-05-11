@@ -1,0 +1,16 @@
+# Node modules
+client/node_modules/
+server/node_modules/
+
+# Logs
+.log 
+
+# env or API
+client/.env
+server/.env
+.env
+.env.*
+
+# Lock files 
+client/package-lock.json
+server/package-lock.json
