@@ -1,6 +1,8 @@
 # Node modules
 client/node_modules/
 server/node_modules/
+db/node_modules/
+node_modules
 
 # Logs
 .log 
@@ -14,3 +16,5 @@ server/.env
 # Lock files 
 client/package-lock.json
 server/package-lock.json
+db/package-lock.json
+package-lock.json

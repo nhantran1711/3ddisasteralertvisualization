@@ -1,13 +1,19 @@
 const express = require("express");
 const cors = require("cors");
+const connectDB = require("../db");
+const EonetEvent = require("./models/EonetEvents");
+require('dotenv').config();
+connectDB();
 
 const app = express();
 const PORT = 4000;
+
 
 const corsOptions = {
     origin: ["http://localhost:5173"]
 }
 app.use(cors(corsOptions));
+app.use(express.json());
 
 // Fetch API data from NASA EONET
 const fetchAPIEONET = async () => {
@@ -47,6 +53,15 @@ const fetchAPIEONET = async () => {
 app.get("/api/eonet", async (req, res) => {
     try {
         const eonetData = await fetchAPIEONET();
+
+        for (const event of eonetData) {
+            // Upsert: insert if not exists, update if exists
+            await EonetEvent.findOneAndUpdate(
+              { id: event.id },
+              event,
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          }
         res.json(eonetData);
     }
     catch (error) {
@@ -55,6 +70,6 @@ app.get("/api/eonet", async (req, res) => {
     }
 })
 
-app.listen(4000, () =>  {
+app.listen(PORT, () =>  {
     console.log(`Server is listening on ${PORT}`);
 })
