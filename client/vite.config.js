@@ -10,7 +10,7 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': 'http://localhost:4000',  // This will forward /api requests to your backend
+      '/api': 'http://localhost:4000'
     },
   }
 })
