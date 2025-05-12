@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import Globe from 'react-globe.gl';
 
 const DisasterGlobe = ({ events }) => {
@@ -6,10 +6,7 @@ const DisasterGlobe = ({ events }) => {
   const categoryMapRef = useRef({});
   let nextCategoryIndex = 0;
 
-  // Define color 
-  const disasterColours = [
-    'red', 'orange', 'yellow', 'purple', 'pink'
-  ];
+  const disasterColours = ['red', 'orange', 'yellow', 'purple', 'pink'];
 
   const points = useMemo(() => {
     if (!Array.isArray(events)) return [];
@@ -18,7 +15,6 @@ const DisasterGlobe = ({ events }) => {
       const coords = event.geometry?.[0]?.coordinates;
       const categoryTitle = event.categories?.[0]?.title || 'Unknown';
 
-      // Assign a number to each unique category
       if (!(categoryTitle in categoryMapRef.current)) {
         categoryMapRef.current[categoryTitle] = nextCategoryIndex++;
       }
@@ -31,12 +27,22 @@ const DisasterGlobe = ({ events }) => {
           lng: coords[0],
           label: `${event.title}`,
           categoryIndex,
+          size: 0.1
         };
       }
 
       return null;
     }).filter(Boolean);
   }, [events]);
+
+  // Enable auto-rotation on mount
+  useEffect(() => {
+    if (globeRef.current) {
+      const controls = globeRef.current.controls(); // OrbitControls instance
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5; // Adjust rotation speed
+    }
+  }, []);
 
   return (
     <div style={{ width: '100%', height: '600px' }}>
@@ -49,10 +55,11 @@ const DisasterGlobe = ({ events }) => {
         pointLat="lat"
         pointLng="lng"
         pointLabel="label"
-        pointAltitude={0.01}
+        pointAltitude="size"
         pointColor={(point) =>
           disasterColours[point.categoryIndex % disasterColours.length] || 'white'
         }
+        animateIn
       />
     </div>
   );
