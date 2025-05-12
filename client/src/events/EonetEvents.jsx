@@ -55,7 +55,7 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents }) => {
 
   // Loading and error handling
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Waiting for data...</div>;
   }
 
   if (error) {
@@ -68,7 +68,7 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents }) => {
 
       {/* Dropdown to select disaster type */}
       <select onChange={handleDisasterChange} value={disasterType}>
-        <option value="">Select Disaster Type</option>
+        <option value="">All </option>
         {categories.map((category) => (
           <option key={category} value={category}>
             {category}
