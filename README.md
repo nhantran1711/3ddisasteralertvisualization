@@ -17,7 +17,7 @@ A React-based 3D globe visualization that displays natural disaster events using
 ## 🛠️ Technologies Used
 
 - ReactJS
-- ThressJS: [react-globe.gl](https://github.com/vasturiano/react-globe.gl)
+- ThreeJS: [react-globe.gl](https://github.com/vasturiano/react-globe.gl)
 - HTML/CSS
 - EONET (Earth Observatory Natural Event Tracker) API
 - BackEnd: NodeJS, ExpressJS
