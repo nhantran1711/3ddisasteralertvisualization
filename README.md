@@ -1,15 +1,15 @@
-# 🌍 Disaster Visualization Globe
+# Disaster Visualization Globe
 
 A React-based 3D globe visualization that displays natural disaster events using the [EONET API](https://eonet.gsfc.nasa.gov/), powered by [`react-globe.gl`](https://github.com/vasturiano/react-globe.gl). Users can toggle between individual disaster points and a heatmap view.
 
 ---
 
-## 🚀 Features
+## Features
 
-- 🌐 3D Globe visualization with animated rotation
-- 🔥 Real-time heatmap of global disaster events using API
-- 📍 Point-based visualization by disaster categories
-- 🔄 Toggle between views (Heatmap / Points)
+- 3D Globe visualization with animated rotation
+- Real-time heatmap of global disaster events using API
+- Point-based visualization by disaster categories
+- Toggle between views (Heatmap / Points)
 - Storing database for future enhancement
 
 ---
@@ -25,7 +25,7 @@ A React-based 3D globe visualization that displays natural disaster events using
 - Tools: VSCode, Postman
 
 ---
-## 🧩 Setup Instructions
+## Setup Instructions
 
 ### 1. Clone the Repository
 
@@ -46,20 +46,20 @@ npm run dev     # If using Vite
 npm start       # If using CRA
 ```
 
-## 🔧 Environment Notes
+## Environment Notes
 
 Compatible with Node.js >= 16
 
 All data is fetched from the public NASA EONET API.
 
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
 NASA EONET for disaster data
 
 Globe.gl for the stunning globe visualization
 
-## 📸 Screenshots
+## Screenshots
 
 Front (before data fetching):
 
