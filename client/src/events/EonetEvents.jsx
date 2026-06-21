@@ -11,7 +11,10 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents, setCate
   const fetchData = async (attempt = 1) => {
     const maxRetries = 3;
     try {
-      const response = await axios.get('http://localhost:4000/api/events');
+      
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/api/events`
+      );
       const fetchedEvents = response.data.events || [];
       setEvents(fetchedEvents);
       setError(null);
