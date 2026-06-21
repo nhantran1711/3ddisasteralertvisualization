@@ -1,85 +1,107 @@
 # Disaster Visualization Globe
 
-A React-based 3D globe visualization that displays natural disaster events using the [EONET API](https://eonet.gsfc.nasa.gov/), powered by [`react-globe.gl`](https://github.com/vasturiano/react-globe.gl). Users can toggle between individual disaster points and a heatmap view.
+A full-stack real-time 3D disaster tracking application that visualizes global natural events using NASA’s EONET API. The project is built with React, Node.js, MongoDB, and Three.js via `react-globe.gl`.
+
+The system fetches live disaster data, stores it in a database for persistence, and renders it on an interactive 3D globe with filtering, clustering, and multiple visualization modes.
+
+---
+
+## Live Demo
+
+https://3ddisaster.netlify.app
 
 ---
 
 ## Features
 
-- 3D Globe visualization with animated rotation
-- Real-time heatmap of global disaster events using API
-- Point-based visualization by disaster categories
-- Toggle between views (Heatmap / Points)
-- Storing database for future enhancement
+### 3D Global Visualization
+- Interactive 3D Earth using `react-globe.gl`
+- Real-time rendering of global disaster events using geographic coordinates
+- Smooth camera movement, rotation, and focus mode for selected events
+
+### Event Visualization Modes
+- Point mode for individual disaster markers
+- Heatmap mode for density-based visualization of global activity
+- Dynamic rendering based on disaster categories and filters
+
+### Filtering System
+- Filter events by disaster category (wildfires, storms, volcanoes, etc.)
+- Real-time UI updates without page reload
+- Automatic extraction of unique categories from API data
+
+### Event Interaction
+- Clickable event markers on the globe
+- Detailed event popup including:
+  - Title
+  - Category
+  - Date
+  - Geographic coordinates
+  - Magnitude (when available)
+
+### Data Management
+- Persistent storage using MongoDB Atlas
+- Deduplication using upsert operations
+- Structured schema for consistent event storage
+
+### Real-Time Sync Engine
+- Scheduled hourly synchronization with NASA EONET API
+- Manual sync endpoint for testing and debugging
+- Resilient handling of external API failures and rate limits
 
 ---
 
-## 🛠️ Technologies Used
+## Tech Stack
 
-- ReactJS
-- ThreeJS: [react-globe.gl](https://github.com/vasturiano/react-globe.gl)
-- HTML/CSS
-- EONET (Earth Observatory Natural Event Tracker) API
-- BackEnd: NodeJS, ExpressJS
-- Databse: MongoDB
-- Tools: VSCode, Postman
+### Frontend
+- React (Vite)
+- JavaScript (ES6+)
+- Axios
+- `react-globe.gl`
+- Three.js
+
+### Backend
+- Node.js
+- Express.js
+- Axios
+- Node-Cron
+
+### Database
+- MongoDB Atlas
+- Mongoose
+
+### External API
+- NASA EONET (Earth Observatory Natural Event Tracker)
+
+### Deployment
+- Frontend: Netlify
+- Backend: Render
+- Database: MongoDB Atlas
 
 ---
-## Setup Instructions
 
-### 1. Clone the Repository
+## System Architecture
 
-```bash
-git clone https://github.com/nhantran1711/3ddisasteralertvisualization.git
-cd 3ddisasteralertvisualization/client
-```
-### 2. Install Dependencies
+NASA EONET API → Node.js Backend → MongoDB Atlas → REST API → React Frontend → 3D Globe Visualization
 
-```bash
-npm install
-```
-### 3. Start the app
+---
 
-```bash
-npm run dev     # If using Vite
-# OR
-npm start       # If using CRA
-```
+## API Endpoints
 
-## Environment Notes
+### GET /api/events
+Returns all disaster events stored in the database.
 
-Compatible with Node.js >= 16
+Query Parameters:
+- category (optional): filter by disaster type
+- limit (optional): number of results returned
 
-All data is fetched from the public NASA EONET API.
+---
 
+### GET /api/events/categories
+Returns a list of all unique disaster categories.
 
-## Acknowledgements
+---
 
-NASA EONET for disaster data
+### POST /api/sync
+Triggers a manual fetch from NASA EONET and updates the database.
 
-Globe.gl for the stunning globe visualization
-
-## Screenshots
-
-Front (before data fetching):
-
-<img width="1430" alt="Screenshot 2025-05-12 at 11 21 46 pm" src="https://github.com/user-attachments/assets/089dc124-4e58-42d7-b4c7-5a9fa6766230" />
-
-
-Front (after data fetching)
-
-<img width="1437" alt="Screenshot 2025-05-12 at 11 22 47 pm" src="https://github.com/user-attachments/assets/bedfb6f1-f0de-40e2-a191-6757892cc302" />
-
-Toggle Menu:
-
-<img width="190" alt="Screenshot 2025-05-12 at 11 23 08 pm" src="https://github.com/user-attachments/assets/384cdb67-3220-45bd-b864-489316ad01c2" />
-
-Dark Mode:
-
-<img width="1439" alt="Screenshot 2025-05-12 at 11 23 56 pm" src="https://github.com/user-attachments/assets/7e379d2f-28fd-42d7-9cfd-f64137fe8d3b" />
-
-## 📄 License
-
-This project is open-source and available under the MIT License.
-
-
+---
