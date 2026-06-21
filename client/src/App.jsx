@@ -168,8 +168,8 @@ function App() {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <p style={{ margin: 0, fontSize: 18 }}>
-                  {CATEGORY_EMOJIS[selectedEvent.categories] || '🌐'} {selectedEvent.categories || 'Event'}
+                <p style={{ margin: 0, fontSize: 18, color: '#fff' }}>
+                  Name: {selectedEvent.categories || 'Event'}
                 </p>
               </div>
               <button
