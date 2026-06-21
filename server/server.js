@@ -1,107 +1,148 @@
-require('dotenv').config();
+require("dotenv").config({
+  path: require("path").resolve(__dirname, "../.env"),
+});
 
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const connectDB = require("../db");
-const mongoose = require('mongoose');
+const cron = require("node-cron");
+
+const mongoose = require("mongoose");
 const EonetEvent = require("./models/EonetEvents");
 
-connectDB();
-
 const app = express();
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
-const corsOptions = {
-    origin: ["http://localhost:5173"]
-}
-app.use(cors(corsOptions));
+app.use(cors({ origin: ["http://localhost:5173"] }));
 app.use(express.json());
 
-// Proxy to the EONET API
-app.use('/api/eonet', createProxyMiddleware({
-    target: 'https://eonet.gsfc.nasa.gov/api/v3/events',
-    changeOrigin: true, // Change the origin of the request
-    pathRewrite: {
-      '^/api/eonet': '', // Remove the `/api/eonet` prefix
-    },
-  }));
+/**
+ * FETCH + TRANSFORM DATA FROM NASA EONET
+ */
+const fetchEonetData = async () => {
+  const res = await axios.get(
+    "https://eonet.gsfc.nasa.gov/api/v3/events"
+  );
 
-// Fetch API data from NASA EONET using axios
-const fetchAPIEONET = async () => {
-    try {
-        const res = await axios.get("https://eonet.gsfc.nasa.gov/api/v3/events");
+  return res.data.events
+    .map((event) => {
+      const geometry = event.geometry?.[0] || {};
 
-        // Log the fetched data to see its structure
-        console.log("Fetched data from EONET:", res.data);
-        const eonetFormat = res.data.events.map((event) => {
-            const id = event.id;
-            const title = event.title;
-            const categories = event.categories?.[0]?.title || "Unknown";
-          
-            // Ensure geometry is defined and safely access its properties
-            const geometry = event.geometry?.[0] || {};  // If geometry array is empty or undefined, use an empty object as fallback
-          
-            // Safely extract values from geometry
-            const magnitude = geometry.magnitudeValue || 'N/A';  // Default to 'N/A' if magnitude is undefined
-            const date = geometry.date || 'N/A';  // Default to 'N/A' if date is undefined
-          
-            // Extract coordinates if present, with fallback to 'N/A'
-            const longitude = geometry.coordinates?.[0] || 'N/A';
-            const latitude = geometry.coordinates?.[1] || 'N/A';
-          
-            return {
-              id,
-              title,
-              categories,
-              magnitude,
-              date,
-              longitude,
-              latitude,
-            };
-          });
-
-        // Log formatted data
-        console.log("Formatted data:", eonetFormat);
-
-        return eonetFormat;
-    } catch (error) {
-        console.error("Error fetching data from EONET:", error);
-        throw new Error("Failed to reach EONET API");
-    }
+      return {
+        id: event.id,
+        title: event.title || "Unknown",
+        categories: event.categories?.[0]?.title || "Unknown",
+        magnitude: geometry.magnitudeValue ?? null,
+        date: geometry.date || null,
+        longitude: geometry.coordinates?.[0] ?? null,
+        latitude: geometry.coordinates?.[1] ?? null,
+      };
+    })
+    .filter((e) => e.id && e.title);
 };
 
-// API route to fetch data from EONET and insert/update into MongoDB
-app.get("/api/eonet", async (req, res) => {
-    try {
-        const eonetData = await fetchAPIEONET();
+/**
+ * SAFE SYNC (NO BULKWRITE = NO TIMEOUT BUGS)
+ */
+const syncEonetData = async () => {
+  const events = await fetchEonetData();
 
-        const batchSize = 100; // Set a batch size for bulkWrite
-        let totalUpserted = 0; // To track the total upserted events
+  let processed = 0;
 
-        for (let i = 0; i < eonetData.length; i += batchSize) {
-            const batch = eonetData.slice(i, i + batchSize);
-            const operations = batch.map((event) => ({
-                updateOne: {
-                    filter: { id: event.id },
-                    update: { $set: event },
-                    upsert: true
-                }
-            }));
+  for (const event of events) {
+    await EonetEvent.updateOne(
+      { id: event.id },
+      { $set: event },
+      { upsert: true }
+    );
 
-            // Perform bulk upsert operation for this batch
-            const result = await EonetEvent.bulkWrite(operations);
-            totalUpserted += result.nUpserted;
-        }
+    processed++;
+  }
 
-        res.json({ message: `Successfully upserted ${totalUpserted} events` });
-    } catch (error) {
-        console.log(`Error fetching data: ${error}`);
-        res.status(500).json({ message: "Unable to fetch data from EONET" });
-    }
+  console.log(`[SYNC] Synced ${processed} events`);
+  return {
+    total: events.length,
+    synced: processed,
+  };
+};
+
+/**
+ * START SERVER ONLY AFTER DB IS READY
+ */
+(async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("MongoDB connected, database:", mongoose.connection.db.databaseName);
+    console.log("DB connected, starting initial sync...");
+
+    syncEonetData().catch((err) =>
+      console.error("[INITIAL SYNC ERROR]", err)
+    );
+
+    // hourly sync
+    cron.schedule("0 * * * *", async () => {
+      try {
+        await syncEonetData();
+      } catch (err) {
+        console.error("[SYNC CRON ERROR]", err);
+      }
+    });
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (err) {
+    console.error("Server startup failed:", err);
+  }
+})();
+
+/**
+ * MANUAL SYNC
+ */
+app.post("/api/sync", async (req, res) => {
+  try {
+    const result = await syncEonetData();
+    res.json({ message: "Sync complete", ...result });
+  } catch (err) {
+    console.error("[SYNC ERROR]", err);
+    res.status(500).json({ message: "Sync failed" });
+  }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is listening on ${PORT}`);
+/**
+ * GET EVENTS
+ */
+app.get("/api/events", async (req, res) => {
+  try {
+    const { category, limit = 500 } = req.query;
+
+    const filter = {};
+    if (category) filter.categories = category;
+
+    const events = await EonetEvent.find(filter)
+      .sort({ date: -1 })
+      .limit(Number(limit))
+      .lean();
+
+    res.json({
+      count: events.length,
+      events,
+    });
+  } catch (err) {
+    console.error("[EVENTS ERROR]", err);
+    res.status(500).json({ message: "Failed to retrieve events" });
+  }
+});
+
+/**
+ * GET CATEGORIES
+ */
+app.get("/api/events/categories", async (req, res) => {
+  try {
+    const categories = await EonetEvent.distinct("categories");
+    res.json(categories);
+  } catch (err) {
+    console.error("[CATEGORIES ERROR]", err);
+    res.status(500).json({ message: "Failed to retrieve categories" });
+  }
 });
