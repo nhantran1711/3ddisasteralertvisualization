@@ -2,33 +2,34 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { filterEvents } from '../utils/filterEvents';
 
-const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents }) => {
-  const [events, setEvents] = useState([]);  // Initialize as an empty array
-  const [categories, setCategories] = useState([]);  // To store unique categories
+const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents, setCategories, setLastSyncedAt }) => {
+  const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retry, setRetry] = useState(0);
+  const [localCategories, setLocalCategories] = useState([]);
 
   const fetchData = async (attempt = 1) => {
     const maxRetries = 3;
     try {
-      const response = await axios.get('http://localhost:4000/api/eonet');
-      const fetchedEvents = response.data.events || [];  // Ensure it’s an array
+      const response = await axios.get('http://localhost:4000/api/events');
+      const fetchedEvents = response.data.events || [];
       setEvents(fetchedEvents);
-      setRetry(0); // Reset retry count if successful
+      setError(null);
 
-      // Extract unique categories from the events (to populate the dropdown)
+      if (response.data.lastSyncedAt) {
+        setLastSyncedAt(new Date(response.data.lastSyncedAt));
+      }
+
       const uniqueCategories = [
-        ...new Set(fetchedEvents.map((event) => event.categories?.[0]?.title).filter(Boolean)),
+        ...new Set(fetchedEvents.map((e) => e.categories).filter(Boolean)),
       ];
+      setLocalCategories(uniqueCategories);
       setCategories(uniqueCategories);
     } catch (err) {
-      setError('Failed to fetch events');
       if (attempt < maxRetries) {
-        setRetry(attempt);
-        setTimeout(() => fetchData(attempt + 1), attempt * 1000); // Exponential backoff
+        setTimeout(() => fetchData(attempt + 1), attempt * 1000);
       } else {
-        setError('Failed to fetch events after multiple attempts.');
+        setError('Could not reach server.');
       }
     } finally {
       setLoading(false);
@@ -37,49 +38,41 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents }) => {
 
   useEffect(() => {
     fetchData();
-    const intervalId = setInterval(fetchData, 60000);  // Fetch data every minute
-    return () => clearInterval(intervalId);  // Cleanup on unmount
+    const id = setInterval(fetchData, 60000);
+    return () => clearInterval(id);
   }, []);
 
-  // Sort events by the latest date in the geometry array
-  const sortEventsByDate = (events) => {
-    return events.sort((a, b) => {
-      const aDate = new Date(Math.max(...a.geometry.map((g) => new Date(g.date).getTime())));  // Get the latest date
-      const bDate = new Date(Math.max(...b.geometry.map((g) => new Date(g.date).getTime())));  // Get the latest date
-      return bDate - aDate;  // Sort in descending order (latest first)
-    });
-  };
-
-  // Filter events based on the disasterType
   useEffect(() => {
     const filtered = filterEvents(events, disasterType);
-    const sorted = sortEventsByDate(filtered); // Sort after filtering
-    setFilteredEvents(sorted);  // Pass the sorted and filtered events to the parent component
-  }, [disasterType, events, setFilteredEvents]);  // Re-run when disasterType or events change
+    const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
+    setFilteredEvents(sorted);
+  }, [disasterType, events, setFilteredEvents]);
 
-  // Function to handle changes in the dropdown (disasterType)
-  const handleDisasterChange = (event) => {
-    setDisasterType(event.target.value);  // Update the disaster type in the parent component
-  };
-
-  // Loading and error handling
-  if (loading) {
-    return <div>Waiting for data...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
+  if (loading) return <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading…</p>;
+  if (error) return <p style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{error}</p>;
 
   return (
-    <div>
-      <h1>Filter Events</h1>
-
-      {/* Dropdown to select disaster type */}
-      <select onChange={handleDisasterChange} value={disasterType}>
-        <option value="">All</option>
-        {categories.map((category) => (
-          <option key={category} value={category}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        Category
+      </label>
+      <select
+        onChange={(e) => setDisasterType(e.target.value)}
+        value={disasterType}
+        style={{
+          width: '100%',
+          borderRadius: 8,
+          border: '1px solid rgba(249,115,22,0.3)',
+          background: 'rgba(249,115,22,0.1)',
+          color: '#fff',
+          fontSize: 13,
+          padding: '7px 10px',
+          outline: 'none',
+        }}
+      >
+        <option value="" style={{ background: '#111' }}>All categories</option>
+        {localCategories.map((category) => (
+          <option key={category} value={category} style={{ background: '#111' }}>
             {category}
           </option>
         ))}

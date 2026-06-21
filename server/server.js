@@ -41,29 +41,31 @@ const fetchEonetData = async () => {
     .filter((e) => e.id && e.title);
 };
 
-/**
- * SAFE SYNC (NO BULKWRITE = NO TIMEOUT BUGS)
- */
+let lastSyncedAt = null;
+
 const syncEonetData = async () => {
-  const events = await fetchEonetData();
+  // Fetch from NASA first — if this throws, MongoDB is untouched
+  let events;
+  try {
+    events = await fetchEonetData();
+  } catch (err) {
+    console.error("[SYNC] NASA API unavailable:", err.message);
+    throw err;
+  }
 
-  let processed = 0;
-
+  let synced = 0;
   for (const event of events) {
     await EonetEvent.updateOne(
       { id: event.id },
       { $set: event },
       { upsert: true }
     );
-
-    processed++;
+    synced++;
   }
 
-  console.log(`[SYNC] Synced ${processed} events`);
-  return {
-    total: events.length,
-    synced: processed,
-  };
+  lastSyncedAt = new Date();
+  console.log(`[SYNC] Synced ${synced} events at ${lastSyncedAt.toISOString()}`);
+  return { total: events.length, synced };
 };
 
 /**
@@ -97,15 +99,15 @@ const syncEonetData = async () => {
 })();
 
 /**
- * MANUAL SYNC
+ * MANUAL SYNC — always responds; NASA failure is non-fatal
  */
 app.post("/api/sync", async (req, res) => {
+  const cached = await EonetEvent.countDocuments();
   try {
     const result = await syncEonetData();
-    res.json({ message: "Sync complete", ...result });
+    res.json({ synced: true, ...result, cached, lastSyncedAt });
   } catch (err) {
-    console.error("[SYNC ERROR]", err);
-    res.status(500).json({ message: "Sync failed" });
+    res.json({ synced: false, reason: "NASA API unavailable", cached, lastSyncedAt });
   }
 });
 
@@ -126,6 +128,7 @@ app.get("/api/events", async (req, res) => {
 
     res.json({
       count: events.length,
+      lastSyncedAt,
       events,
     });
   } catch (err) {

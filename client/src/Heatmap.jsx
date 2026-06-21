@@ -1,32 +1,20 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import Globe from 'react-globe.gl';
-import * as THREE from 'three';
 
-const HeatmapGlobe = ({ events }) => {
-  const globeRef = useRef();
+const EARTH_URL = 'https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg';
 
-  // Generate points from the events
+const HeatmapGlobe = ({ events, intensity = 2 }) => {
+  const globeRef  = useRef();
+  const earthImg  = useRef(null);          // cache the loaded base image
+  const [texture, setTexture] = useState(EARTH_URL);
+
   const points = useMemo(() => {
     if (!Array.isArray(events)) return [];
-
-    const pointsData = events.map((event) => {
-      const coords = event.geometry?.[0]?.coordinates;
-
-      if (coords && coords.length === 2) {
-        return {
-          lat: coords[1], // Latitude
-          lng: coords[0], // Longitude
-          weight: 1 + Math.random() // Adjust weight for randomness
-        };
-      }
-      return null;
-    }).filter(Boolean);
-
-    console.log('Points:', pointsData);  // Log points for debugging
-    return pointsData;
+    return events
+      .filter((e) => e.latitude != null && e.longitude != null)
+      .map((e) => ({ lat: e.latitude, lng: e.longitude }));
   }, [events]);
 
-  // Enable auto-rotation for globe
   useEffect(() => {
     if (globeRef.current) {
       const controls = globeRef.current.controls();
@@ -35,57 +23,55 @@ const HeatmapGlobe = ({ events }) => {
     }
   }, []);
 
-  // Create and apply heatmap texture to the globe
+  // Redraw whenever points or intensity changes
   useEffect(() => {
-    if (!globeRef.current || points.length === 0) return;
+    if (!points.length) { setTexture(EARTH_URL); return; }
 
-    // Create canvas for heatmap
-    const canvas = document.createElement('canvas');
-    canvas.width = 2048; // Width of the heatmap canvas
-    canvas.height = 1024; // Height of the heatmap canvas
-    const ctx = canvas.getContext('2d');
+    const draw = (base) => {
+      const radius = 10 + (intensity - 1) * 17.5;
+      const alpha  = 0.45 + (intensity - 1) * 0.25;
 
-    points.forEach(({ lat, lng, weight }) => {
-      // Convert lat/lng to canvas coordinates
-      const x = (lng + 180) * (canvas.width / 360);
-      const y = (90 - lat) * (canvas.height / 180);
-      const radius = 20; // Increase radius for better visibility
+      const canvas = document.createElement('canvas');
+      canvas.width  = 2048;
+      canvas.height = 1024;
+      const ctx = canvas.getContext('2d');
 
-      // Log coordinates for debugging
-      console.log(`Drawing at lat: ${lat}, lng: ${lng}, weight: ${weight}`);
+      if (base) ctx.drawImage(base, 0, 0, canvas.width, canvas.height);
 
-      // Draw heatmap on canvas using a radial gradient
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      gradient.addColorStop(0, 'rgba(255,0,0,0.8)');
-      gradient.addColorStop(1, 'rgba(255,0,0,0)');
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, 2 * Math.PI);
-      ctx.fill();
-    });
+      points.forEach(({ lat, lng }) => {
+        const x = (lng + 180) * (canvas.width  / 360);
+        const y = (90 - lat) * (canvas.height / 180);
 
-    // Create a texture from the canvas
-    const heatmapTexture = new THREE.CanvasTexture(canvas);
-    heatmapTexture.minFilter = THREE.LinearFilter;
-    heatmapTexture.magFilter = THREE.LinearFilter;
-    heatmapTexture.needsUpdate = true;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        g.addColorStop(0,   `rgba(255,80,0,${alpha})`);
+        g.addColorStop(0.4, `rgba(255,40,0,${(alpha * 0.5).toFixed(2)})`);
+        g.addColorStop(1,   'rgba(255,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fill();
+      });
 
-    // Apply the heatmap texture to the globe material
-    if (globeRef.current) {
-      const globeMaterial = globeRef.current.globeMaterial;
-      if (globeMaterial) {
-        globeMaterial.map = heatmapTexture;
-        globeMaterial.needsUpdate = true; // Force the material update
-      }
+      setTexture(canvas.toDataURL());
+    };
+
+    if (earthImg.current) {
+      draw(earthImg.current);
+    } else {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload  = () => { earthImg.current = img; draw(img); };
+      img.onerror = () => draw(null);   // fallback: heatmap on black globe
+      img.src = EARTH_URL;
     }
-  }, [points]);
+  }, [points, intensity]);
 
   return (
-    <div style={{ width: '100%', height: '600px' }}>
+    <div style={{ width: '100%', height: '100vh' }}>
       <Globe
         ref={globeRef}
-        globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        globeImageUrl={texture}
+        backgroundImageUrl="https://unpkg.com/three-globe/example/img/night-sky.png"
         animateIn
       />
     </div>
