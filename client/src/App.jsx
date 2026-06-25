@@ -320,44 +320,24 @@ function App() {
             </div>
 
             {/* Links */}
-            {(selectedEvent.sourceUrl || selectedEvent.link) && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {selectedEvent.sourceUrl && (
-                  <a
-                    href={selectedEvent.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      fontSize: 11, padding: '5px 10px', borderRadius: 6,
-                      background: 'rgba(249,115,22,0.15)', color: '#fdba74',
-                      border: '1px solid rgba(249,115,22,0.3)',
-                      textDecoration: 'none',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.28)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.15)'}
-                  >
-                    View Source ↗
-                  </a>
-                )}
-                {selectedEvent.link && (
-                  <a
-                    href={selectedEvent.link}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      fontSize: 11, padding: '5px 10px', borderRadius: 6,
-                      background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      textDecoration: 'none',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
-                  >
-                    NASA EONET ↗
-                  </a>
-                )}
-              </div>
-            )}
+            <div>
+              <a
+                href={`https://www.google.com/search?q=${encodeURIComponent(selectedEvent.title)}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'inline-block',
+                  fontSize: 11, padding: '5px 10px', borderRadius: 6,
+                  background: 'rgba(249,115,22,0.15)', color: '#fdba74',
+                  border: '1px solid rgba(249,115,22,0.3)',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.28)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.15)'}
+              >
+                View Source ↗
+              </a>
+            </div>
           </div>
         )}
 
