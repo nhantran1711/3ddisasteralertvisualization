@@ -9,7 +9,7 @@ const glassPanel = {
   WebkitBackdropFilter: 'blur(12px)',
 };
 
-export default function CountrySearch({ onSelect, onClear }) {
+export default function CountrySearch({ onSelect, onClear, style }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const containerRef = useRef();
@@ -43,7 +43,7 @@ export default function CountrySearch({ onSelect, onClear }) {
   return (
     <div
       ref={containerRef}
-      style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, width: 320 }}
+      style={{ position: 'fixed', top: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, width: 320, ...style }}
     >
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         <span style={{ position: 'absolute', left: 11, color: 'rgba(255,255,255,0.35)', fontSize: 13, pointerEvents: 'none' }}>

@@ -59,8 +59,21 @@ function App() {
   const [highlightCoords, setHighlightCoords] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [panelOpen, setPanelOpen] = useState(false);
   const globeRef = useRef();
   const pendingFlyRef = useRef(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = e => {
+      setIsMobile(e.matches);
+      if (!e.matches) setPanelOpen(true);
+    };
+    mq.addEventListener('change', handler);
+    setPanelOpen(!mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     if (!showHeatmap && pendingFlyRef.current) {
@@ -107,7 +120,7 @@ function App() {
           color-scheme: dark;
           width: 100%;
           padding: 6px 8px;
-          borderRadius: 8px;
+          border-radius: 8px;
           border: 1px solid rgba(249,115,22,0.3);
           background: rgba(249,115,22,0.08);
           color: #fff;
@@ -118,6 +131,10 @@ function App() {
         input[type=date]::-webkit-calendar-picker-indicator {
           filter: invert(0.7) sepia(1) saturate(3) hue-rotate(340deg);
           cursor: pointer;
+        }
+        @keyframes slideInLeft {
+          from { transform: translateX(-100%); opacity: 0; }
+          to   { transform: translateX(0);     opacity: 1; }
         }
         input[type=range]::-webkit-slider-thumb {
           -webkit-appearance: none;
@@ -143,9 +160,43 @@ function App() {
           />
         )}
 
+        {/* Mobile toggle button */}
+        {isMobile && (
+          <button
+            onClick={() => setPanelOpen(o => !o)}
+            style={{
+              position: 'fixed', top: 16, left: 16, zIndex: 10001,
+              width: 40, height: 40, borderRadius: 10,
+              background: 'rgba(10,10,10,0.9)',
+              border: '1px solid rgba(249,115,22,0.4)',
+              color: '#fb923c', fontSize: 18, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(12px)',
+            }}
+          >
+            {panelOpen ? '×' : '☰'}
+          </button>
+        )}
+
+        {/* Backdrop for mobile */}
+        {isMobile && panelOpen && (
+          <div
+            onClick={() => setPanelOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.5)' }}
+          />
+        )}
+
         <CountrySearch
+          style={isMobile ? {
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 'calc(100% - 96px)',
+            maxWidth: 320,
+          } : undefined}
           onSelect={country => {
             setHighlightCoords({ lat: country.lat, lng: country.lng });
+            if (isMobile) setPanelOpen(false);
             if (showHeatmap) {
               pendingFlyRef.current = { lat: country.lat, lng: country.lng };
               setShowHeatmap(false);
@@ -160,7 +211,22 @@ function App() {
         />
 
         {/* Left control panel */}
-        <div style={{ position: 'fixed', top: 24, left: 24, zIndex: 9999, width: 220, display: 'flex', flexDirection: 'column', gap: 12, padding: 16, ...glassPanel }}>
+        <div style={{
+          position: 'fixed',
+          top: isMobile ? 0 : 24,
+          left: isMobile ? 0 : 24,
+          zIndex: 9999,
+          width: isMobile ? '80vw' : 220,
+          maxWidth: isMobile ? 300 : 'none',
+          height: isMobile ? '100vh' : 'auto',
+          overflowY: isMobile ? 'auto' : 'visible',
+          display: 'flex', flexDirection: 'column', gap: 12,
+          padding: isMobile ? '64px 16px 24px' : 16,
+          transform: isMobile ? (panelOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+          transition: 'transform 0.3s cubic-bezier(0.22,1,0.36,1)',
+          ...glassPanel,
+          borderRadius: isMobile ? '0 16px 16px 0' : 16,
+        }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
