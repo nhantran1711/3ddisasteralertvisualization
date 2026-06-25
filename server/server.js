@@ -116,7 +116,7 @@ app.post("/api/sync", async (req, res) => {
  */
 app.get("/api/events", async (req, res) => {
   try {
-    const { category, limit = 500 } = req.query;
+    const { category, limit = 2000 } = req.query;
 
     const filter = {};
     if (category) filter.categories = category;

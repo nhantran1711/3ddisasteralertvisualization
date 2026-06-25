@@ -5,6 +5,7 @@ import { filterEvents } from '../utils/filterEvents';
 const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents, setCategories, setLastSyncedAt }) => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [localCategories, setLocalCategories] = useState([]);
 
@@ -13,7 +14,7 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents, setCate
     try {
       
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL}/api/events`
+        `${import.meta.env.VITE_API_URL}/api/events?_t=${Date.now()}`
       );
       const fetchedEvents = response.data.events || [];
       setEvents(fetchedEvents);
@@ -51,14 +52,52 @@ const EonetEvents = ({ disasterType, setDisasterType, setFilteredEvents, setCate
     setFilteredEvents(sorted);
   }, [disasterType, events, setFilteredEvents]);
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/sync`);
+      console.log('[REFRESH] NASA sync complete');
+    } catch (err) {
+      console.warn('[REFRESH] Sync failed, fetching cached data:', err.message);
+    }
+    try {
+      await fetchData();
+    } catch (err) {
+      console.warn('[REFRESH] Fetch failed:', err.message);
+    }
+    setRefreshing(false);
+  };
+
   if (loading) return <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Loading…</p>;
   if (error) return <p style={{ margin: 0, fontSize: 12, color: '#f87171' }}>{error}</p>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-        Category
-      </label>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          Category
+        </label>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          title="Fetch latest data"
+          style={{
+            background: 'none', border: 'none', padding: '2px 4px',
+            color: refreshing ? 'rgba(249,115,22,0.4)' : '#fb923c',
+            fontSize: 14, cursor: refreshing ? 'default' : 'pointer',
+            lineHeight: 1,
+            display: 'inline-flex', alignItems: 'center',
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={e => { if (!refreshing) e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = refreshing ? 'rgba(249,115,22,0.4)' : '#fb923c'; }}
+        >
+          <span style={{
+            display: 'inline-block',
+            animation: refreshing ? 'spin 0.8s linear infinite' : 'none',
+          }}>&#8635;</span>
+        </button>
+      </div>
       <select
         onChange={(e) => setDisasterType(e.target.value)}
         value={disasterType}

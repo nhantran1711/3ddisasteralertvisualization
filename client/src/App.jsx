@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import EonetEvents from './events/EonetEvents';
 import DisasterGlobe, { disasterColours } from './Globe';
 import HeatmapGlobe from './Heatmap';
@@ -58,12 +58,26 @@ function App() {
   const [intensity, setIntensity] = useState(2);
   const [highlightCoords, setHighlightCoords] = useState(null);
   const globeRef = useRef();
+  const pendingFlyRef = useRef(null);
+
+  useEffect(() => {
+    if (!showHeatmap && pendingFlyRef.current) {
+      const coords = pendingFlyRef.current;
+      pendingFlyRef.current = null;
+      setTimeout(() => globeRef.current?.flyTo(coords.lat, coords.lng), 200);
+    }
+  }, [showHeatmap]);
 
   const intensityLabel = intensity < 1.7 ? 'Low' : intensity < 2.4 ? 'Medium' : 'High';
+  const displayedCount = filteredEvents.filter(e => e.latitude != null && e.longitude != null).length;
 
   return (
     <>
       <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
         @keyframes slideInRight {
           from { transform: translateX(110%); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
@@ -104,7 +118,12 @@ function App() {
         <CountrySearch
           onSelect={country => {
             setHighlightCoords({ lat: country.lat, lng: country.lng });
-            globeRef.current?.flyTo(country.lat, country.lng);
+            if (showHeatmap) {
+              pendingFlyRef.current = { lat: country.lat, lng: country.lng };
+              setShowHeatmap(false);
+            } else {
+              globeRef.current?.flyTo(country.lat, country.lng);
+            }
           }}
           onClear={() => {
             setHighlightCoords(null);
@@ -117,7 +136,7 @@ function App() {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
-              <span style={{ color: '#fb923c', fontWeight: 600 }}>{filteredEvents.length}</span> active events
+              <span style={{ color: '#fb923c', fontWeight: 600 }}>{displayedCount}</span> events on display
             </p>
             {lastSyncedAt && (
               <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
