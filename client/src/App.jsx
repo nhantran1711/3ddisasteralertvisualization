@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import EonetEvents from './events/EonetEvents';
 import DisasterGlobe, { disasterColours } from './Globe';
 import HeatmapGlobe from './Heatmap';
+import CountrySearch from './CountrySearch';
 
 const CATEGORY_EMOJIS = {
   'Wildfires': '🔥',
@@ -55,6 +56,8 @@ function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [intensity, setIntensity] = useState(2);
+  const [highlightCoords, setHighlightCoords] = useState(null);
+  const globeRef = useRef();
 
   const intensityLabel = intensity < 1.7 ? 'Low' : intensity < 2.4 ? 'Medium' : 'High';
 
@@ -90,8 +93,24 @@ function App() {
         {showHeatmap ? (
           <HeatmapGlobe events={filteredEvents} intensity={intensity} />
         ) : (
-          <DisasterGlobe events={filteredEvents} onEventClick={setSelectedEvent} />
+          <DisasterGlobe
+            ref={globeRef}
+            events={filteredEvents}
+            onEventClick={setSelectedEvent}
+            highlightCoords={highlightCoords}
+          />
         )}
+
+        <CountrySearch
+          onSelect={country => {
+            setHighlightCoords({ lat: country.lat, lng: country.lng });
+            globeRef.current?.flyTo(country.lat, country.lng);
+          }}
+          onClear={() => {
+            setHighlightCoords(null);
+            globeRef.current?.resumeRotation();
+          }}
+        />
 
         {/* Left control panel */}
         <div style={{ position: 'fixed', top: 24, left: 24, zIndex: 9999, width: 220, display: 'flex', flexDirection: 'column', gap: 12, padding: 16, ...glassPanel }}>
