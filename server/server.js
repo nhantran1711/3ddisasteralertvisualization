@@ -31,11 +31,16 @@ const fetchEonetData = async () => {
       return {
         id: event.id,
         title: event.title || "Unknown",
+        description: event.description || null,
         categories: event.categories?.[0]?.title || "Unknown",
         magnitude: geometry.magnitudeValue ?? null,
+        magnitudeUnit: geometry.magnitudeUnit ?? null,
         date: geometry.date || null,
         longitude: geometry.coordinates?.[0] ?? null,
         latitude: geometry.coordinates?.[1] ?? null,
+        closed: event.closed || null,
+        link: event.link || null,
+        sourceUrl: event.sources?.[0]?.url || null,
       };
     })
     .filter((e) => e.id && e.title);

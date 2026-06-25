@@ -201,39 +201,102 @@ function App() {
         {selectedEvent && (
           <div
             className="detail-panel"
-            style={{ position: 'fixed', top: 24, right: 24, zIndex: 9999, width: 260, display: 'flex', flexDirection: 'column', gap: 14, padding: 18, ...glassPanel }}
+            style={{ position: 'fixed', top: 24, right: 24, zIndex: 9999, width: 280, display: 'flex', flexDirection: 'column', gap: 12, padding: 18, ...glassPanel }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <p style={{ margin: 0, fontSize: 18, color: '#fff' }}>
-                  Name: {selectedEvent.categories || 'Event'}
-                </p>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fb923c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {selectedEvent.categories || 'Event'}
+              </p>
               <button
                 onClick={() => setSelectedEvent(null)}
-                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 0 }}
                 onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
-              >
-                ×
-              </button>
+                onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+              >×</button>
             </div>
 
             <div style={{ height: 1, background: 'rgba(249,115,22,0.2)' }} />
 
-            {/* Fields */}
-            {[
-              { label: 'Title',     value: selectedEvent.title },
-              { label: 'Date',      value: formatDate(selectedEvent.date) },
-              { label: 'Magnitude', value: selectedEvent.magnitude ?? 'N/A' },
-              { label: 'Location',  value: formatCoord(selectedEvent.latitude, selectedEvent.longitude) },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{label}</span>
-                <span style={{ fontSize: 13, color: '#fff' }}>{value}</span>
+            {/* Title */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Title</span>
+              <p style={{ margin: 0, fontSize: 14, color: '#fff', lineHeight: 1.4 }}>{selectedEvent.title}</p>
+            </div>
+
+            {/* Description */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Description</span>
+              <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                {selectedEvent.description || 'No description available.'}
+              </p>
+            </div>
+
+            {/* Location */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Location</span>
+              <span style={{ fontSize: 12, color: '#fff', fontFamily: 'monospace' }}>
+                {formatCoord(selectedEvent.latitude, selectedEvent.longitude)}
+              </span>
+            </div>
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+            {/* Date + Magnitude */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Date</span>
+                <span style={{ fontSize: 12, color: '#fff' }}>{formatDate(selectedEvent.date)}</span>
               </div>
-            ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Magnitude</span>
+                <span style={{ fontSize: 12, color: '#fff' }}>
+                  {selectedEvent.magnitude != null
+                    ? `${selectedEvent.magnitude}${selectedEvent.magnitudeUnit ? ' ' + selectedEvent.magnitudeUnit : ''}`
+                    : 'N/A'}
+                </span>
+              </div>
+            </div>
+
+            {/* Links */}
+            {(selectedEvent.sourceUrl || selectedEvent.link) && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {selectedEvent.sourceUrl && (
+                  <a
+                    href={selectedEvent.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: 11, padding: '5px 10px', borderRadius: 6,
+                      background: 'rgba(249,115,22,0.15)', color: '#fdba74',
+                      border: '1px solid rgba(249,115,22,0.3)',
+                      textDecoration: 'none',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(249,115,22,0.28)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(249,115,22,0.15)'}
+                  >
+                    View Source ↗
+                  </a>
+                )}
+                {selectedEvent.link && (
+                  <a
+                    href={selectedEvent.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: 11, padding: '5px 10px', borderRadius: 6,
+                      background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      textDecoration: 'none',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.14)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.07)'}
+                  >
+                    NASA EONET ↗
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         )}
 
