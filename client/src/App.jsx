@@ -57,6 +57,8 @@ function App() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [intensity, setIntensity] = useState(2);
   const [highlightCoords, setHighlightCoords] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const globeRef = useRef();
   const pendingFlyRef = useRef(null);
 
@@ -69,7 +71,16 @@ function App() {
   }, [showHeatmap]);
 
   const intensityLabel = intensity < 1.7 ? 'Low' : intensity < 2.4 ? 'Medium' : 'High';
-  const displayedCount = filteredEvents.filter(e => e.latitude != null && e.longitude != null).length;
+
+  const displayedEvents = filteredEvents.filter(e => {
+    if (!e.date) return true;
+    const d = new Date(e.date);
+    if (dateFrom && d < new Date(dateFrom)) return false;
+    if (dateTo && d > new Date(dateTo + 'T23:59:59')) return false;
+    return true;
+  });
+
+  const displayedCount = displayedEvents.filter(e => e.latitude != null && e.longitude != null).length;
 
   return (
     <>
@@ -91,6 +102,23 @@ function App() {
           background: rgba(249,115,22,0.25);
           outline: none;
         }
+        input[type=date] {
+          -webkit-appearance: none;
+          color-scheme: dark;
+          width: 100%;
+          padding: 6px 8px;
+          borderRadius: 8px;
+          border: 1px solid rgba(249,115,22,0.3);
+          background: rgba(249,115,22,0.08);
+          color: #fff;
+          font-size: 12px;
+          outline: none;
+          box-sizing: border-box;
+        }
+        input[type=date]::-webkit-calendar-picker-indicator {
+          filter: invert(0.7) sepia(1) saturate(3) hue-rotate(340deg);
+          cursor: pointer;
+        }
         input[type=range]::-webkit-slider-thumb {
           -webkit-appearance: none;
           width: 14px;
@@ -105,11 +133,11 @@ function App() {
       <div style={{ position: 'relative', width: '100%', height: '100vh', background: '#000', overflow: 'hidden' }}>
 
         {showHeatmap ? (
-          <HeatmapGlobe events={filteredEvents} intensity={intensity} />
+          <HeatmapGlobe events={displayedEvents} intensity={intensity} />
         ) : (
           <DisasterGlobe
             ref={globeRef}
-            events={filteredEvents}
+            events={displayedEvents}
             onEventClick={setSelectedEvent}
             highlightCoords={highlightCoords}
           />
@@ -152,6 +180,39 @@ function App() {
             setCategories={setCategories}
             setLastSyncedAt={setLastSyncedAt}
           />
+
+          {/* Date range filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Date Range</span>
+              {(dateFrom || dateTo) && (
+                <button
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  style={{ background: 'none', border: 'none', color: 'rgba(249,115,22,0.7)', fontSize: 11, cursor: 'pointer', padding: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#fb923c'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(249,115,22,0.7)'}
+                >Clear</button>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={e => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>To</label>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={e => setDateTo(e.target.value)}
+              />
+            </div>
+          </div>
 
           <button
             onClick={() => setShowHeatmap(!showHeatmap)}
